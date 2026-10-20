@@ -1,0 +1,657 @@
+{
+  "schema_version": "1.0",
+  "generator": "matchsense-sim 0.1.0",
+  "seed": 16,
+  "competition": "Synthetic Premier Division (fictional clubs and players)",
+  "kickoff": "2026-10-24T15:00:00Z",
+  "venue": "Ironvale Park",
+  "referee": "Helen Marsh-Pryor",
+  "pitch": {
+    "length": 105.0,
+    "width": 68.0,
+    "origin": "bottom-left"
+  },
+  "fps": 10,
+  "frames": 58920,
+  "teams": {
+    "home": {
+      "id": "IRV",
+      "name": "Ironvale FC",
+      "short_name": "Ironvale",
+      "colors": {
+        "primary": "#1B2A4A",
+        "secondary": "#F2A900",
+        "text": "#FFFFFF"
+      },
+      "formation": "4-3-3",
+      "stadium": "Ironvale Park",
+      "style": {
+        "tempo": 1.1,
+        "directness": 0.35,
+        "risk": 0.9,
+        "press_line": 80,
+        "press_intensity": 0.7,
+        "line_height": 3,
+        "width": 1.05,
+        "crossing": 0.45,
+        "strength": 0.0
+      },
+      "lineup": [
+        {
+          "slot": 0,
+          "player": "IRV-01",
+          "role": "GK"
+        },
+        {
+          "slot": 1,
+          "player": "IRV-02",
+          "role": "RB"
+        },
+        {
+          "slot": 2,
+          "player": "IRV-05",
+          "role": "RCB"
+        },
+        {
+          "slot": 3,
+          "player": "IRV-06",
+          "role": "LCB"
+        },
+        {
+          "slot": 4,
+          "player": "IRV-03",
+          "role": "LB"
+        },
+        {
+          "slot": 5,
+          "player": "IRV-04",
+          "role": "CDM"
+        },
+        {
+          "slot": 6,
+          "player": "IRV-08",
+          "role": "RCM"
+        },
+        {
+          "slot": 7,
+          "player": "IRV-10",
+          "role": "LCM"
+        },
+        {
+          "slot": 8,
+          "player": "IRV-07",
+          "role": "RW"
+        },
+        {
+          "slot": 9,
+          "player": "IRV-09",
+          "role": "ST"
+        },
+        {
+          "slot": 10,
+          "player": "IRV-11",
+          "role": "LW"
+        }
+      ],
+      "bench": [
+        "IRV-13",
+        "IRV-15",
+        "IRV-22",
+        "IRV-14",
+        "IRV-18",
+        "IRV-19",
+        "IRV-20"
+      ],
+      "attacks_first_half": "right"
+    },
+    "away": {
+      "id": "WMA",
+      "name": "Westmarsh Athletic",
+      "short_name": "Westmarsh",
+      "colors": {
+        "primary": "#B3202A",
+        "secondary": "#FFFFFF",
+        "text": "#FFFFFF"
+      },
+      "formation": "4-2-3-1",
+      "stadium": "The Saltings",
+      "style": {
+        "tempo": 0.95,
+        "directness": 0.65,
+        "risk": 1.1,
+        "press_line": 55,
+        "press_intensity": 0.45,
+        "line_height": -4,
+        "width": 0.95,
+        "crossing": 0.6,
+        "strength": 0.0
+      },
+      "lineup": [
+        {
+          "slot": 11,
+          "player": "WMA-01",
+          "role": "GK"
+        },
+        {
+          "slot": 12,
+          "player": "WMA-02",
+          "role": "RB"
+        },
+        {
+          "slot": 13,
+          "player": "WMA-04",
+          "role": "RCB"
+        },
+        {
+          "slot": 14,
+          "player": "WMA-05",
+          "role": "LCB"
+        },
+        {
+          "slot": 15,
+          "player": "WMA-03",
+          "role": "LB"
+        },
+        {
+          "slot": 16,
+          "player": "WMA-06",
+          "role": "RDM"
+        },
+        {
+          "slot": 17,
+          "player": "WMA-08",
+          "role": "LDM"
+        },
+        {
+          "slot": 18,
+          "player": "WMA-07",
+          "role": "RAM"
+        },
+        {
+          "slot": 19,
+          "player": "WMA-10",
+          "role": "CAM"
+        },
+        {
+          "slot": 20,
+          "player": "WMA-11",
+          "role": "LAM"
+        },
+        {
+          "slot": 21,
+          "player": "WMA-09",
+          "role": "ST"
+        }
+      ],
+      "bench": [
+        "WMA-12",
+        "WMA-15",
+        "WMA-23",
+        "WMA-16",
+        "WMA-17",
+        "WMA-19",
+        "WMA-21"
+      ],
+      "attacks_first_half": "left"
+    }
+  },
+  "players": [
+    {
+      "index": 0,
+      "id": "IRV-01",
+      "name": "Anders Holmgren",
+      "short_name": "Holmgren",
+      "number": 1,
+      "position": "GK",
+      "team": "IRV",
+      "nationality": "SE",
+      "foot": "R"
+    },
+    {
+      "index": 1,
+      "id": "IRV-02",
+      "name": "Kojo Ampofo",
+      "short_name": "Ampofo",
+      "number": 2,
+      "position": "RB",
+      "team": "IRV",
+      "nationality": "GH",
+      "foot": "R"
+    },
+    {
+      "index": 2,
+      "id": "IRV-05",
+      "name": "Callum Rourke",
+      "short_name": "Rourke",
+      "number": 5,
+      "position": "RCB",
+      "team": "IRV",
+      "nationality": "IE",
+      "foot": "R"
+    },
+    {
+      "index": 3,
+      "id": "IRV-06",
+      "name": "Tiago Valente",
+      "short_name": "Valente",
+      "number": 6,
+      "position": "LCB",
+      "team": "IRV",
+      "nationality": "PT",
+      "foot": "L"
+    },
+    {
+      "index": 4,
+      "id": "IRV-03",
+      "name": "Jonah Whitlock",
+      "short_name": "Whitlock",
+      "number": 3,
+      "position": "LB",
+      "team": "IRV",
+      "nationality": "GB-ENG",
+      "foot": "L"
+    },
+    {
+      "index": 5,
+      "id": "IRV-04",
+      "name": "Idrissa Lowe",
+      "short_name": "Lowe",
+      "number": 4,
+      "position": "CDM",
+      "team": "IRV",
+      "nationality": "GB-ENG",
+      "foot": "R"
+    },
+    {
+      "index": 6,
+      "id": "IRV-08",
+      "name": "Hiroshi Tanabe",
+      "short_name": "Tanabe",
+      "number": 8,
+      "position": "RCM",
+      "team": "IRV",
+      "nationality": "JP",
+      "foot": "R"
+    },
+    {
+      "index": 7,
+      "id": "IRV-10",
+      "name": "Marco Bellandi",
+      "short_name": "Bellandi",
+      "number": 10,
+      "position": "LCM",
+      "team": "IRV",
+      "nationality": "IT",
+      "foot": "L"
+    },
+    {
+      "index": 8,
+      "id": "IRV-07",
+      "name": "Rafael Quintero",
+      "short_name": "Quintero",
+      "number": 7,
+      "position": "RW",
+      "team": "IRV",
+      "nationality": "CO",
+      "foot": "L"
+    },
+    {
+      "index": 9,
+      "id": "IRV-09",
+      "name": "Elliot Brannigan",
+      "short_name": "Brannigan",
+      "number": 9,
+      "position": "ST",
+      "team": "IRV",
+      "nationality": "GB-SCT",
+      "foot": "R"
+    },
+    {
+      "index": 10,
+      "id": "IRV-11",
+      "name": "Emre Kaplanoğlu",
+      "short_name": "Kaplanoğlu",
+      "number": 11,
+      "position": "LW",
+      "team": "IRV",
+      "nationality": "TR",
+      "foot": "R"
+    },
+    {
+      "index": 11,
+      "id": "IRV-13",
+      "name": "Rhys Penhallow",
+      "short_name": "Penhallow",
+      "number": 13,
+      "position": "GK",
+      "team": "IRV",
+      "nationality": "GB-WLS",
+      "foot": "R"
+    },
+    {
+      "index": 12,
+      "id": "IRV-15",
+      "name": "Nikolai Brandt",
+      "short_name": "Brandt",
+      "number": 15,
+      "position": "CB",
+      "team": "IRV",
+      "nationality": "DE",
+      "foot": "R"
+    },
+    {
+      "index": 13,
+      "id": "IRV-22",
+      "name": "Samuel Adjei",
+      "short_name": "Adjei",
+      "number": 22,
+      "position": "FB",
+      "team": "IRV",
+      "nationality": "GH",
+      "foot": "R"
+    },
+    {
+      "index": 14,
+      "id": "IRV-14",
+      "name": "Seo Jae-won",
+      "short_name": "Seo",
+      "number": 14,
+      "position": "CM",
+      "team": "IRV",
+      "nationality": "KR",
+      "foot": "R"
+    },
+    {
+      "index": 15,
+      "id": "IRV-18",
+      "name": "Lucas Ferrand",
+      "short_name": "Ferrand",
+      "number": 18,
+      "position": "AM",
+      "team": "IRV",
+      "nationality": "FR",
+      "foot": "L"
+    },
+    {
+      "index": 16,
+      "id": "IRV-19",
+      "name": "Dário Mendes",
+      "short_name": "Mendes",
+      "number": 19,
+      "position": "W",
+      "team": "IRV",
+      "nationality": "PT",
+      "foot": "R"
+    },
+    {
+      "index": 17,
+      "id": "IRV-20",
+      "name": "Tyrese Okonkwo",
+      "short_name": "Okonkwo",
+      "number": 20,
+      "position": "ST",
+      "team": "IRV",
+      "nationality": "NG",
+      "foot": "R"
+    },
+    {
+      "index": 18,
+      "id": "WMA-01",
+      "name": "Piotr Wasilewski",
+      "short_name": "Wasilewski",
+      "number": 1,
+      "position": "GK",
+      "team": "WMA",
+      "nationality": "PL",
+      "foot": "R"
+    },
+    {
+      "index": 19,
+      "id": "WMA-02",
+      "name": "Aaron Fairclough",
+      "short_name": "Fairclough",
+      "number": 2,
+      "position": "RB",
+      "team": "WMA",
+      "nationality": "GB-ENG",
+      "foot": "R"
+    },
+    {
+      "index": 20,
+      "id": "WMA-04",
+      "name": "Bastien Lemaire",
+      "short_name": "Lemaire",
+      "number": 4,
+      "position": "RCB",
+      "team": "WMA",
+      "nationality": "FR",
+      "foot": "R"
+    },
+    {
+      "index": 21,
+      "id": "WMA-05",
+      "name": "Declan Fenwick",
+      "short_name": "Fenwick",
+      "number": 5,
+      "position": "LCB",
+      "team": "WMA",
+      "nationality": "GB-ENG",
+      "foot": "L"
+    },
+    {
+      "index": 22,
+      "id": "WMA-03",
+      "name": "Mikkel Thorsager",
+      "short_name": "Thorsager",
+      "number": 3,
+      "position": "LB",
+      "team": "WMA",
+      "nationality": "DK",
+      "foot": "L"
+    },
+    {
+      "index": 23,
+      "id": "WMA-06",
+      "name": "Santiago Ibarra",
+      "short_name": "Ibarra",
+      "number": 6,
+      "position": "RDM",
+      "team": "WMA",
+      "nationality": "AR",
+      "foot": "R"
+    },
+    {
+      "index": 24,
+      "id": "WMA-08",
+      "name": "Kwame Nkansah",
+      "short_name": "Nkansah",
+      "number": 8,
+      "position": "LDM",
+      "team": "WMA",
+      "nationality": "GH",
+      "foot": "R"
+    },
+    {
+      "index": 25,
+      "id": "WMA-07",
+      "name": "Leon Hartley",
+      "short_name": "Hartley",
+      "number": 7,
+      "position": "RAM",
+      "team": "WMA",
+      "nationality": "GB-ENG",
+      "foot": "L"
+    },
+    {
+      "index": 26,
+      "id": "WMA-10",
+      "name": "Adil Benali",
+      "short_name": "Benali",
+      "number": 10,
+      "position": "CAM",
+      "team": "WMA",
+      "nationality": "MA",
+      "foot": "L"
+    },
+    {
+      "index": 27,
+      "id": "WMA-11",
+      "name": "Joaquín Salcedo",
+      "short_name": "Salcedo",
+      "number": 11,
+      "position": "LAM",
+      "team": "WMA",
+      "nationality": "ES",
+      "foot": "R"
+    },
+    {
+      "index": 28,
+      "id": "WMA-09",
+      "name": "Viktor Halvorsen",
+      "short_name": "Halvorsen",
+      "number": 9,
+      "position": "ST",
+      "team": "WMA",
+      "nationality": "NO",
+      "foot": "L"
+    },
+    {
+      "index": 29,
+      "id": "WMA-12",
+      "name": "Tom Ashby",
+      "short_name": "Ashby",
+      "number": 12,
+      "position": "GK",
+      "team": "WMA",
+      "nationality": "GB-ENG",
+      "foot": "R"
+    },
+    {
+      "index": 30,
+      "id": "WMA-15",
+      "name": "Ruben Kessler",
+      "short_name": "Kessler",
+      "number": 15,
+      "position": "CB",
+      "team": "WMA",
+      "nationality": "NL",
+      "foot": "R"
+    },
+    {
+      "index": 31,
+      "id": "WMA-23",
+      "name": "Henrik Lund",
+      "short_name": "Lund",
+      "number": 23,
+      "position": "FB",
+      "team": "WMA",
+      "nationality": "SE",
+      "foot": "L"
+    },
+    {
+      "index": 32,
+      "id": "WMA-16",
+      "name": "Femi Adebayo-Clarke",
+      "short_name": "Adebayo-Clarke",
+      "number": 16,
+      "position": "DM",
+      "team": "WMA",
+      "nationality": "GB-ENG",
+      "foot": "R"
+    },
+    {
+      "index": 33,
+      "id": "WMA-17",
+      "name": "Arturo Vela",
+      "short_name": "Vela",
+      "number": 17,
+      "position": "AM",
+      "team": "WMA",
+      "nationality": "MX",
+      "foot": "R"
+    },
+    {
+      "index": 34,
+      "id": "WMA-19",
+      "name": "Kai Nakamura",
+      "short_name": "Nakamura",
+      "number": 19,
+      "position": "W",
+      "team": "WMA",
+      "nationality": "JP",
+      "foot": "R"
+    },
+    {
+      "index": 35,
+      "id": "WMA-21",
+      "name": "Jordan Pryce",
+      "short_name": "Pryce",
+      "number": 21,
+      "position": "ST",
+      "team": "WMA",
+      "nationality": "GB-WLS",
+      "foot": "R"
+    }
+  ],
+  "score": {
+    "home": 1,
+    "away": 2
+  },
+  "half_time_score": {
+    "home": 1,
+    "away": 0
+  },
+  "storyline": {
+    "name": "comeback",
+    "description": "Ironvale dominate the first half with a high press. At the hour Westmarsh push their line up and press higher while Ironvale tire and drop off, and the game turns.",
+    "phases": [
+      {
+        "minute": 0,
+        "team": "home",
+        "overrides": {
+          "strength": 4,
+          "tempo": 1.15,
+          "press_line": 88,
+          "press_intensity": 0.8
+        },
+        "note": "Ironvale start fast and press high"
+      },
+      {
+        "minute": 0,
+        "team": "away",
+        "overrides": {
+          "strength": -2,
+          "press_line": 48,
+          "line_height": -6
+        },
+        "note": "Westmarsh sit in a deep block"
+      },
+      {
+        "minute": 58,
+        "team": "away",
+        "overrides": {
+          "strength": 5,
+          "press_line": 82,
+          "press_intensity": 0.85,
+          "line_height": 4,
+          "tempo": 1.15,
+          "directness": 0.55
+        },
+        "note": "Westmarsh push up and press high"
+      },
+      {
+        "minute": 62,
+        "team": "home",
+        "overrides": {
+          "strength": -3,
+          "press_line": 55,
+          "press_intensity": 0.4,
+          "tempo": 0.95,
+          "line_height": -4
+        },
+        "note": "Ironvale tire and drop into a mid block"
+      }
+    ]
+  },
+  "tracking_layout": "xy[frame, slot]; slots 0-10 home, 11-21 away; players[player_index[frame, slot]]"
+}

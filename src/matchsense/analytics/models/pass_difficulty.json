@@ -1,0 +1,65 @@
+{
+  "features": [
+    "bias",
+    "distance",
+    "lofted",
+    "pressure",
+    "lane",
+    "marking",
+    "forward",
+    "cross",
+    "through",
+    "restart"
+  ],
+  "coef": [
+    3.2574,
+    0.21913,
+    -1.93574,
+    -1.77961,
+    -0.50764,
+    -4.73732,
+    -0.38168,
+    -0.62315,
+    -0.62281,
+    0.11578
+  ],
+  "metrics": {
+    "train_matches": 13,
+    "test_matches": 3,
+    "train_passes": 12393,
+    "test_passes": 2868,
+    "test_auc": 0.83,
+    "test_brier": 0.103,
+    "baseline_brier": 0.1349,
+    "test_completion": 0.839,
+    "mean_predicted": 0.839,
+    "corr_with_simulator_truth": 0.629,
+    "calibration": [
+      {
+        "predicted": 0.111,
+        "actual": 0.114,
+        "n": 35
+      },
+      {
+        "predicted": 0.325,
+        "actual": 0.431,
+        "n": 123
+      },
+      {
+        "predicted": 0.509,
+        "actual": 0.495,
+        "n": 186
+      },
+      {
+        "predicted": 0.71,
+        "actual": 0.713,
+        "n": 446
+      },
+      {
+        "predicted": 0.939,
+        "actual": 0.934,
+        "n": 2078
+      }
+    ]
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "id": "IRV",
+  "name": "Ironvale FC",
+  "short_name": "Ironvale",
+  "colors": { "primary": "#1B2A4A", "secondary": "#F2A900", "text": "#FFFFFF" },
+  "stadium": "Ironvale Park",
+  "formation": "4-3-3",
+  "style": {
+    "tempo": 1.1, "directness": 0.35, "risk": 0.9, "press_line": 80, "press_intensity": 0.7,
+    "line_height": 3, "width": 1.05, "crossing": 0.45
+  },
+  "starters": [
+    { "id": "IRV-01", "name": "Anders Holmgren", "number": 1, "role": "GK", "foot": "R", "nationality": "SE",
+      "ratings": { "pace": 48, "accel": 50, "passing": 70, "dribbling": 35, "finishing": 15, "defending": 30, "stamina": 70, "aerial": 82, "keeping": 82 } },
+    { "id": "IRV-02", "name": "Kojo Ampofo", "number": 2, "role": "RB", "foot": "R", "nationality": "GH",
+      "ratings": { "pace": 86, "accel": 84, "passing": 72, "dribbling": 74, "finishing": 50, "defending": 72, "stamina": 88, "aerial": 62 } },
+    { "id": "IRV-05", "name": "Callum Rourke", "number": 5, "role": "RCB", "foot": "R", "nationality": "IE",
+      "ratings": { "pace": 70, "accel": 64, "passing": 70, "dribbling": 50, "finishing": 40, "defending": 84, "stamina": 80, "aerial": 86 } },
+    { "id": "IRV-06", "name": "Tiago Valente", "number": 6, "role": "LCB", "foot": "L", "nationality": "PT",
+      "ratings": { "pace": 74, "accel": 68, "passing": 80, "dribbling": 58, "finishing": 38, "defending": 82, "stamina": 78, "aerial": 80 } },
+    { "id": "IRV-03", "name": "Jonah Whitlock", "number": 3, "role": "LB", "foot": "L", "nationality": "GB-ENG",
+      "ratings": { "pace": 82, "accel": 80, "passing": 74, "dribbling": 70, "finishing": 45, "defending": 72, "stamina": 86, "aerial": 60 } },
+    { "id": "IRV-04", "name": "Idrissa Lowe", "number": 4, "role": "CDM", "foot": "R", "nationality": "GB-ENG",
+      "ratings": { "pace": 72, "accel": 70, "passing": 82, "dribbling": 66, "finishing": 52, "defending": 80, "stamina": 90, "aerial": 74 } },
+    { "id": "IRV-08", "name": "Hiroshi Tanabe", "number": 8, "role": "RCM", "foot": "R", "nationality": "JP",
+      "ratings": { "pace": 76, "accel": 80, "passing": 86, "dribbling": 82, "finishing": 64, "defending": 66, "stamina": 92, "aerial": 55 } },
+    { "id": "IRV-10", "name": "Marco Bellandi", "number": 10, "role": "LCM", "foot": "L", "nationality": "IT",
+      "ratings": { "pace": 70, "accel": 74, "passing": 90, "dribbling": 84, "finishing": 74, "defending": 58, "stamina": 80, "aerial": 52 } },
+    { "id": "IRV-07", "name": "Rafael Quintero", "number": 7, "role": "RW", "foot": "L", "nationality": "CO",
+      "ratings": { "pace": 92, "accel": 92, "passing": 76, "dribbling": 88, "finishing": 76, "defending": 40, "stamina": 82, "aerial": 50 } },
+    { "id": "IRV-09", "name": "Elliot Brannigan", "number": 9, "role": "ST", "foot": "R", "nationality": "GB-SCT",
+      "ratings": { "pace": 80, "accel": 78, "passing": 70, "dribbling": 76, "finishing": 88, "defending": 42, "stamina": 80, "aerial": 84 } },
+    { "id": "IRV-11", "name": "Emre Kaplanoğlu", "short_name": "Kaplanoğlu", "number": 11, "role": "LW", "foot": "R", "nationality": "TR",
+      "ratings": { "pace": 88, "accel": 88, "passing": 78, "dribbling": 86, "finishing": 78, "defending": 40, "stamina": 80, "aerial": 48 } }
+  ],
+  "bench": [
+    { "id": "IRV-13", "name": "Rhys Penhallow", "number": 13, "position": "GK", "foot": "R", "nationality": "GB-WLS",
+      "ratings": { "pace": 46, "accel": 48, "passing": 64, "dribbling": 30, "finishing": 12, "defending": 28, "stamina": 70, "aerial": 78, "keeping": 74 } },
+    { "id": "IRV-15", "name": "Nikolai Brandt", "number": 15, "position": "CB", "foot": "R", "nationality": "DE",
+      "ratings": { "pace": 68, "accel": 62, "passing": 72, "dribbling": 48, "finishing": 36, "defending": 80, "stamina": 80, "aerial": 84 } },
+    { "id": "IRV-22", "name": "Samuel Adjei", "number": 22, "position": "FB", "foot": "R", "nationality": "GH",
+      "ratings": { "pace": 84, "accel": 82, "passing": 68, "dribbling": 70, "finishing": 44, "defending": 70, "stamina": 86, "aerial": 60 } },
+    { "id": "IRV-14", "name": "Seo Jae-won", "short_name": "Seo", "number": 14, "position": "CM", "foot": "R", "nationality": "KR",
+      "ratings": { "pace": 74, "accel": 78, "passing": 82, "dribbling": 78, "finishing": 62, "defending": 70, "stamina": 92, "aerial": 56 } },
+    { "id": "IRV-18", "name": "Lucas Ferrand", "number": 18, "position": "AM", "foot": "L", "nationality": "FR",
+      "ratings": { "pace": 78, "accel": 82, "passing": 84, "dribbling": 84, "finishing": 76, "defending": 48, "stamina": 82, "aerial": 50 } },
+    { "id": "IRV-19", "name": "Dário Mendes", "short_name": "Mendes", "number": 19, "position": "W", "foot": "R", "nationality": "PT",
+      "ratings": { "pace": 90, "accel": 90, "passing": 72, "dribbling": 84, "finishing": 72, "defending": 38, "stamina": 80, "aerial": 46 } },
+    { "id": "IRV-20", "name": "Tyrese Okonkwo", "number": 20, "position": "ST", "foot": "R", "nationality": "NG",
+      "ratings": { "pace": 86, "accel": 84, "passing": 64, "dribbling": 74, "finishing": 82, "defending": 40, "stamina": 82, "aerial": 86 } }
+  ]
+}

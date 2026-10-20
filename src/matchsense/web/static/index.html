@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MatchSense</title>
+  <meta name="description" content="Explainable, personalised match intelligence for every fan.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"></span>MatchSense</div>
+    <div class="fixture" id="fixture">Connecting…</div>
+    <nav class="modes" id="modes" aria-label="Viewing mode">
+      <button data-mode="casual" class="active" title="Plain-language moments, minimal clutter">Casual</button>
+      <button data-mode="analyst" title="Every metric, every signal">Analyst</button>
+      <button data-mode="player" title="Follow one player all match">Player focus</button>
+      <button data-mode="club" title="See the match from your club's side">My club</button>
+      <button data-mode="audio" title="Spoken description for blind and partially sighted fans">Audio description</button>
+    </nav>
+    <div class="selectors">
+      <select id="player-select" aria-label="Player to follow" hidden></select>
+      <select id="team-select" aria-label="Your club" hidden></select>
+      <select id="lang-select" aria-label="Commentary language">
+        <option value="en" selected>English</option>
+        <option value="es" disabled>Español · with Azure</option>
+        <option value="ar" disabled>العربية · with Azure</option>
+        <option value="hi" disabled>हिन्दी · with Azure</option>
+      </select>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="stage">
+      <div class="pitch-wrap" id="pitch-wrap">
+        <canvas id="pitch" aria-label="Live 2D view of the match"></canvas>
+        <div class="overlay" id="overlay">
+          <div class="scorebug" id="scorebug">
+            <div class="sb-team" id="sb-home"><span class="chip"></span><span class="name"></span></div>
+            <div class="sb-score" id="sb-score">0 – 0</div>
+            <div class="sb-team" id="sb-away"><span class="name"></span><span class="chip"></span></div>
+            <div class="sb-clock" id="sb-clock">0'</div>
+          </div>
+          <div class="carrier" id="carrier" hidden></div>
+          <div class="tags" id="tags"></div>
+          <div class="lower-third" id="lower-third" aria-live="polite"></div>
+          <div class="banner" id="banner" hidden></div>
+        </div>
+      </div>
+
+      <div class="transport">
+        <button class="icon-btn" id="play" aria-label="Pause">❚❚</button>
+        <div class="timeline" id="timeline" title="Click to jump">
+          <div class="half-split"></div>
+          <div class="progress" id="progress"></div>
+          <div class="markers" id="markers"></div>
+        </div>
+        <label class="speed">Speed
+          <select id="speed">
+            <option value="1">1×</option><option value="2">2×</option><option value="4">4×</option>
+            <option value="8" selected>8×</option><option value="16">16×</option><option value="32">32×</option>
+          </select>
+        </label>
+      </div>
+      <div class="jumps" id="jumps">
+        <span>Jump to</span>
+        <button data-jump="0">Kick-off</button>
+        <button data-jump="25">25'</button>
+        <button data-jump="45">Second half</button>
+        <button data-jump="56">56'</button>
+        <button data-jump="80">80'</button>
+      </div>
+      <div class="momentum-wrap">
+        <div class="momentum-label">Momentum <span>threat created, minute by minute</span></div>
+        <canvas id="momentum" class="momentum"></canvas>
+      </div>
+    </section>
+
+    <aside class="panel" id="panel">
+      <section class="card" id="card-focus" hidden>
+        <div class="focus-head" id="focus-head"></div>
+        <div class="focus-grid" id="focus-grid"></div>
+      </section>
+      <section class="card" id="card-stats">
+        <h2 id="stats-title">Match so far</h2>
+        <div id="stats"></div>
+        <div class="gauges" id="gauges"></div>
+      </section>
+      <section class="card feed-card">
+        <h2 id="feed-title">Key moments</h2>
+        <ol class="feed" id="feed"></ol>
+      </section>
+    </aside>
+  </main>
+  <script type="module" src="main.js"></script>
+</body>
+</html>
