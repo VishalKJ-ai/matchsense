@@ -84,6 +84,8 @@ select {
 .lt .title { font: 700 26px/1.05 var(--display); text-transform: uppercase; letter-spacing: .5px; }
 .lt .body { margin-top: 3px; font-size: 15px; color: #d6dee8; }
 .lt .meta { font: 500 12px var(--body); color: var(--muted); margin-top: 4px; }
+.lt .why { margin-top: 6px; font-size: 13.5px; color: #e6f7f5; border-left: 2px solid var(--accent); padding-left: 8px; }
+.lt .why b { font: 600 12px var(--display); text-transform: uppercase; letter-spacing: .5px; color: var(--accent); margin-right: 4px; }
 .lt.kind-goal .title { font-size: 34px; }
 @keyframes lt-in { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes lt-out { to { transform: translateY(12px); opacity: 0; } }
@@ -151,6 +153,11 @@ select {
 .feed li .t { font-weight: 600; }
 .feed li .b { color: #c5cfdb; font-size: 12.5px; margin-top: 2px; }
 .feed li.say { border-left-color: var(--accent); font-size: 15px; }
+.feed li .w { margin-top: 4px; font-size: 12px; color: #9fe9e2; }
+.feed li.ai { border-left-color: var(--accent); }
+.recap-card .headline { font: 700 20px/1.15 var(--display); text-transform: uppercase; letter-spacing: .3px; }
+.recap-card .recap { margin: 8px 0 6px; color: #d5dde7; }
+.recap-card .src { font-size: 11px; color: var(--muted); }
 .feed li.say.p0 { color: var(--muted); font-size: 13px; }
 .feed li.say.p3 { background: #39d0c422; }
 .focus-head { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; }

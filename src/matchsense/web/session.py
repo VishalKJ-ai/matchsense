@@ -11,8 +11,10 @@ intelligence reaches every profile differently. Message types sent to the client
     state   clock, score, momentum, possession, chaos, ball carrier   (every second)
     ev      ticker events: goals, shots, cards, substitutions
     sig     analytics signals (for the analyst log)
-    cue     an overlay cue to show (see render.producer.CUE_SCHEMA)
+    cue     an overlay cue to show (see render.producer.CUE_SCHEMA), with a "why it matters" line
+    cue_text  improved text for a cue from the narration crew on Microsoft Foundry
     cue_end an earlier cue removed early (pre-empted)
+    recap   a half-time or full-time recap
     say     an audio-description line
     end     the match is over
 """
@@ -23,6 +25,8 @@ import asyncio
 import json
 import math
 
+from ..agents.crew import NarrationCrew
+from ..agents.prompts import LANGUAGES
 from ..analytics.context import clock_label
 from ..analytics.engine import LiveAnalytics
 from ..live.feed import replay
@@ -46,10 +50,15 @@ def _r(v: float) -> float | None:
 
 
 class LiveSession:
-    def __init__(self, match: StoredMatch, profile: Profile, audio: bool = False, speed: float = 8.0):
+    def __init__(self, match: StoredMatch, profile: Profile, audio: bool = False, speed: float = 8.0,
+                 crew: NarrationCrew | None = None):
         self.match = match
         self.analytics = LiveAnalytics(match.metadata)
         self.ctx = self.analytics.ctx
+        self.crew = crew or NarrationCrew(self.ctx)
+        self._by_id: dict = {}
+        self._jobs: list[tuple] = []
+        self._tasks: set = set()
         self.set_profile(profile, audio)
         self.speed = speed
         self.paused = False
@@ -73,7 +82,10 @@ class LiveSession:
                       for side in ("home", "away")},
             "players": [{k: p[k] for k in ("index", "id", "name", "short_name", "number", "position", "team")}
                         for p in meta["players"]],
-            "profile": {"mode": self.profile.mode, "team": self.profile.team, "player": self.profile.player},
+            "profile": {"mode": self.profile.mode, "team": self.profile.team, "player": self.profile.player,
+                        "language": self.profile.language},
+            "narration": {"remote": self.crew.remote,
+                          "languages": list(LANGUAGES) if self.crew.remote else ["en"]},
             "history": self.history(),
         }
 
@@ -119,7 +131,7 @@ class LiveSession:
             out.append({"k": "f", "f": frame.index, "t": round(frame.t, 1), "p": frame.period, "s": frame.state,
                         "o": frame.owner, "b": [_r(v) for v in frame.ball.tolist()], "xy": xy})
         out += self._signals(signals, frame.index)
-        out += self.producer.tick(frame.index)
+        out += [self._decorate(m) for m in self.producer.tick(frame.index)]
         if self.describer:
             out += self._say(self.describer.on_frame(frame))
         if frame.index % FPS == 0:
@@ -145,12 +157,64 @@ class LiveSession:
     def _signals(self, signals, now: int) -> list[dict]:
         out = []
         for s in signals:
+            self._by_id[s.id] = s
             if s.significance >= 0.3:
                 out.append({"k": "sig", **s.to_dict()})
-            out += self.producer.on_signal(s, now)
+            out += [self._decorate(m) for m in self.producer.on_signal(s, now)]
             if self.describer:
                 out += self._say(self.describer.on_signal(s))
+            if s.kind == "period_summary":
+                out.append(self._recap(s))
         return out
+
+    def _decorate(self, msg: dict) -> dict:
+        """Add the instant "why it matters" line to a lower third, and queue the crew's improved text."""
+        if msg.get("k") != "cue" or msg.get("layer") != "lower_third":
+            return msg
+        s = self._by_id.get(msg["signal"])
+        if s is None:
+            return msg
+        snapshot = self.analytics.snapshot(window_minutes=10)
+        msg["why"] = self.crew.explain_now(s, snapshot)
+        msg["source"] = "local"
+        if self.crew.remote:
+            self._jobs.append(("narrate", msg["id"], s, snapshot, {"title": msg["title"], "body": msg["body"]},
+                               self.profile))
+        return msg
+
+    def _recap(self, s) -> dict:
+        period = s.facts.get("period", 1)
+        snapshot = self.analytics.snapshot(window_minutes=10)
+        signals = list(self.analytics.emitted)
+        local = self.crew.recap(signals, snapshot, self.profile, period, local_only=True)
+        if self.crew.remote:
+            self._jobs.append(("recap", period, signals, snapshot, self.profile))
+        return {"k": "recap", "period": period, "clock": s.clock, **local}
+
+    async def _run_job(self, send, job: tuple) -> None:
+        loop = asyncio.get_running_loop()
+        try:
+            if job[0] == "narrate":
+                _, cue_id, s, snapshot, template, profile = job
+                n = await loop.run_in_executor(None, self.crew.narrate, s, snapshot, profile, template)
+                if n.source == "foundry":
+                    await send({"k": "cue_text", "id": cue_id, "title": n.title, "body": n.body, "why": n.why,
+                                "language": n.language, "source": n.source, "attempts": n.attempts,
+                                "latency_ms": n.latency_ms})
+            else:
+                _, period, signals, snapshot, profile = job
+                r = await loop.run_in_executor(None, self.crew.recap, signals, snapshot, profile, period)
+                if r.get("source") == "foundry":
+                    await send({"k": "recap", "period": period, **r})
+        except Exception:  # noqa: BLE001 - narration is an enhancement; the broadcast carries on without it
+            pass
+
+    def _start_jobs(self, send) -> None:
+        for job in self._jobs:
+            task = asyncio.create_task(self._run_job(send, job))
+            self._tasks.add(task)
+            task.add_done_callback(self._tasks.discard)
+        self._jobs.clear()
 
     def _say(self, lines) -> list[dict]:
         f = self.analytics.frame
@@ -188,6 +252,7 @@ class LiveSession:
         """Run the analytics up to the start point without producing output."""
         if start_frame <= 0:
             return
+        self._jobs.clear()
         for kind, item in feed:
             if kind == "frame":
                 self.analytics.on_frame(item)
@@ -229,6 +294,8 @@ class LiveSession:
                 messages = self.event_messages(item)
             for m in messages:
                 await send(m)
+            if self._jobs:
+                self._start_jobs(send)
         await send(self.state_message())
         await send({"k": "end"})
 
@@ -243,6 +310,10 @@ class LiveSession:
             self.paused = False
         elif kind == "profile":
             self.set_profile(Profile.from_params(msg), bool(msg.get("audio")))
+
+    def close(self) -> None:
+        for task in list(self._tasks):
+            task.cancel()
 
 
 def dumps(message: dict) -> str:

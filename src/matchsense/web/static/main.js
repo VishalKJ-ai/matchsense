@@ -17,6 +17,7 @@ const S = {
   mode: params.get("mode") || "casual",
   team: params.get("team") || "",
   player: params.get("player") || "",
+  lang: params.get("lang") || "en",
   speed: Number(params.get("speed") || 8),
   ws: null, init: null, teams: {}, playersByIndex: {}, slots: [],
   prev: null, cur: null, recvAt: 0, interval: 0.1, paused: false, ended: false,
@@ -46,7 +47,7 @@ function connect(startMinute = 0) {
   $("#play").textContent = "❚❚";
   banner(startMinute ? `Catching up to ${startMinute}'…` : "Kick-off…");
   const proto = location.protocol === "https:" ? "wss" : "ws";
-  const q = new URLSearchParams({ mode: S.mode, team: S.team, player: S.player, speed: S.speed, start: startMinute,
+  const q = new URLSearchParams({ mode: S.mode, team: S.team, player: S.player, lang: S.lang, speed: S.speed, start: startMinute,
                                   audio: S.mode === "audio" ? 1 : 0 });
   const ws = new WebSocket(`${proto}://${location.host}/ws/matches/${S.matchId}?${q}`);
   ws.onmessage = (e) => handle(JSON.parse(e.data));
@@ -57,7 +58,7 @@ function connect(startMinute = 0) {
 function send(msg) { if (S.ws && S.ws.readyState === 1) S.ws.send(JSON.stringify(msg)); }
 
 function sendProfile() {
-  send({ type: "profile", mode: S.mode, team: S.team, player: S.player, audio: S.mode === "audio" });
+  send({ type: "profile", mode: S.mode, team: S.team, player: S.player, lang: S.lang, audio: S.mode === "audio" });
 }
 
 // --------------------------------------------------------------- messages
@@ -72,6 +73,8 @@ function handle(m) {
       if (S.cur) momentum.push(timelinePct(S.cur.p, S.cur.t), m.momentum);
       return carrier(m.carrier);
     case "cue": overlays.cue(m); return feedCue(m);
+    case "cue_text": overlays.updateCue(m.id, m); return panel.update(m.id, m);
+    case "recap": return panel.recap(m);
     case "cue_end": return overlays.remove(m.id);
     case "ev": return onEvent(m);
     case "sig": return onSignal(m);
@@ -98,6 +101,13 @@ function onInit(m) {
   momentum.setTeams(home, away);
   panel.setTeams(home, away, m.players);
   fillSelectors(home, away, m.players);
+  const ls = $("#lang-select");
+  for (const opt of ls.options) {
+    const available = m.narration?.languages?.includes(opt.value);
+    opt.disabled = !available;
+    opt.textContent = opt.textContent.replace(" · with Azure", "") + (available ? "" : " · with Azure");
+  }
+  ls.value = S.lang;
   for (const [x, v] of m.history?.momentum || []) momentum.push(x, v);
   for (const mk of m.history?.markers || []) addMarker(mk);
   if (S.mode === "analyst") {
@@ -137,7 +147,7 @@ function onSignal(s) {
 function feedCue(c) {
   if (S.mode === "analyst" || S.mode === "audio") return;
   if (c.layer === "tag" && S.mode !== "player") return;
-  panel.add(c.clock, c.title, c.body);
+  panel.add(c.clock, c.title, c.body, "", c.id, c.why);
 }
 
 function summarise(s) {
@@ -223,6 +233,7 @@ function bindControls() {
   }));
   $("#player-select").addEventListener("change", (e) => { S.player = e.target.value; panel.setMode(S.mode); sendProfile(); });
   $("#team-select").addEventListener("change", (e) => { S.team = e.target.value; sendProfile(); });
+  $("#lang-select").addEventListener("change", (e) => { S.lang = e.target.value; sendProfile(); });
   $("#speed").addEventListener("change", (e) => { S.speed = Number(e.target.value); send({ type: "speed", value: S.speed }); });
   $("#play").addEventListener("click", () => {
     if (S.ended) return connect(0);

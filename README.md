@@ -11,7 +11,7 @@ matches are fictional.
 | --- | --- | --- |
 | Data | Tracking-grade match simulator (this repo, `matchsense.sim`) | done |
 | Interpret | Live stats engine: pass difficulty, speeds, pressing, momentum, control vs chaos, key moments (`matchsense.analytics`) | done |
-| Explain | Agents on Microsoft Foundry: analyst, tactician, narrators, producer, fact-checker | planned |
+| Explain | Narration crew on Microsoft Foundry: tactician, narrator, fact-checker, recapper, with a local fallback (`matchsense.agents`) | built; live Foundry run pending |
 | Render | Timed, machine-readable overlay cues, a producer that schedules them, and a live 2D broadcast view (`matchsense.render`, `matchsense.web`) | done |
 | Personalise | Casual, analyst, player-focus, club and audio-description modes; languages follow with the agents | done (English) |
 
@@ -149,6 +149,99 @@ Then open http://localhost:8000. Try `?mode=player&player=WMA-07&start=84`
 for Leon Hartley's late double, or `?mode=analyst&start=56` for the pressing
 change.
 
+## The narration crew (Microsoft Foundry)
+
+```
+signal ──► Tactician ──► Narrator ──► Fact-checker ──► on-air text
+           why it        one per      every number      ungrounded: one repair,
+           matters       audience     from evidence     then the template
+period end ──► Recapper ──► Fact-checker ──► recap card
+```
+
+- **Tactician** explains why a moment matters. Its analysis is cached on a
+  shared blackboard per moment, so it runs once however many viewers there are.
+- **Narrator** writes the graphic for one audience: style, club, focus player
+  and language (English, Spanish, French, Portuguese, Arabic, Hindi, Japanese,
+  Swahili and more). It avoids repeating that audience's recent lines.
+- **Fact-checker** is deterministic. Every number in generated text must appear
+  in the signal's fact pack, allowing for rounding, percentages, "1 in N" odds
+  and before-and-after changes. Failures get one repair request, then the
+  template is used.
+- **Recapper** writes the half-time and full-time stories.
+
+Every step fails soft, so the broadcast never waits for a model. Each lower
+third goes on air at once with a deterministic "why it matters" line. The
+crew's text replaces it a moment later when Foundry is configured. With no
+Foundry settings, a timeout, an error or a rate limit, the local path stays
+on screen.
+
+Models are called through the Foundry project's Responses API with strict JSON
+schemas, `store=False`, and Microsoft Entra ID sign-in (managed identity in
+Azure, `az login` locally): no keys anywhere. With `FOUNDRY_USE_AGENTS=1`,
+each role is registered as a versioned Foundry prompt agent
+(`matchsense-tactician`, `-narrator`, `-recapper`) and called by reference.
+Traces go to Application Insights. `/api/narration` reports the backend,
+calls, failures and tokens.
+
+## Deploy to Azure
+
+Everything is defined in `infra/` (Bicep) and `azure.yaml` (Azure Developer
+CLI). `azd up` creates one resource group containing:
+
+| Resource | Purpose |
+| --- | --- |
+| Azure Container Apps (Consumption) | the web service and websocket stream; one warm replica, scales to 3 |
+| Azure Container Registry | the image, built in Azure (`remoteBuild`), so Docker is not needed locally |
+| Microsoft Foundry account, project and model deployment | the narration crew |
+| User-assigned managed identity | keyless access: AcrPull, Azure AI User, Monitoring Metrics Publisher |
+| Log Analytics and Application Insights | logs, metrics and traces |
+| Budget (optional) | email alerts at 50%, 80% and 100% of a monthly amount |
+
+1. Install the [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli)
+   and the [Azure Developer CLI](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd).
+2. Sign in and create an environment:
+
+```bash
+azd auth login
+```
+
+```bash
+azd env new matchsense-dev
+```
+
+```bash
+azd env set AZURE_LOCATION swedencentral
+```
+
+3. Optionally set a budget alert, and pick a different model if `gpt-6-astra`
+   is not available in your region:
+
+```bash
+azd env set BUDGET_CONTACT_EMAIL you@example.com
+```
+
+```bash
+az cognitiveservices model list --location swedencentral --query "[?kind=='AIServices'].model.{name:name,version:version}" -o table
+```
+
+```bash
+azd env set FOUNDRY_MODEL_NAME gpt-6-astra
+```
+
+4. Provision and deploy, then open the `WEB_URL` it prints:
+
+```bash
+azd up
+```
+
+To use Foundry from your laptop, run `az login`, copy
+`FOUNDRY_PROJECT_ENDPOINT` and `FOUNDRY_MODEL_DEPLOYMENT` from
+`azd env get-values` into your shell (see `.env.example`), and start
+`matchsense-web`. Tear everything down with `azd down --purge`.
+
+CI (`.github/workflows/ci.yml`) runs the tests, builds and smoke-tests the
+container, and compiles the Bicep on every push.
+
 ## Quick start
 
 ```bash
@@ -176,6 +269,9 @@ src/matchsense/sim/     simulator: engine, models, pitch, squads, storylines, re
 src/matchsense/live/    feed replay and live CLI
 src/matchsense/analytics/  live stats engine: passing, physical, tactical, signals
 src/matchsense/render/  overlay cues, producer, viewer profiles, audio description
+src/matchsense/agents/  narration crew: tactician, narrator, fact-checker, recapper; Foundry and local backends
 src/matchsense/web/     FastAPI service, live websocket session, browser frontend
+infra/, azure.yaml      Azure Container Apps, Foundry and monitoring (Bicep, azd)
+Dockerfile              container image for the web service
 tests/                  models, full-match invariants, analytics, render and websocket tests
 ```

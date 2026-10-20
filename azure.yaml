@@ -1,0 +1,13 @@
+# Azure Developer CLI project: `azd up` provisions infra/ and deploys the web service.
+# The image is built in Azure Container Registry (remoteBuild), so Docker is not needed locally.
+name: matchsense
+metadata:
+  template: matchsense@0.1.0
+services:
+  web:
+    project: .
+    language: python
+    host: containerapp
+    docker:
+      path: ./Dockerfile
+      remoteBuild: true

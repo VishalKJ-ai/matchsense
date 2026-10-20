@@ -7,13 +7,18 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import logging
 import os
+import threading
+from contextlib import asynccontextmanager
 from functools import lru_cache
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 
+from ..agents import AGENT_INSTRUCTIONS, Blackboard, NarrationCrew, model_from_env
+from ..analytics.context import MatchContext
 from ..render.producer import CUE_SCHEMA
 from ..render.profiles import MODES, Profile
 from ..sim.io import StoredMatch, load_match
@@ -22,7 +27,50 @@ from .session import FPS, LiveSession, dumps
 DATA_ROOT = Path(os.environ.get("MATCHSENSE_DATA", Path(__file__).resolve().parents[3] / "data" / "matches"))
 STATIC = Path(__file__).with_name("static")
 
-app = FastAPI(title="MatchSense", description="Explainable, personalised match intelligence")
+log = logging.getLogger("matchsense.web")
+MODEL = model_from_env()
+CREWS: dict[str, NarrationCrew] = {}
+
+
+def _configure_telemetry() -> None:
+    """Send traces to Application Insights when it is configured (keyless, with the app's identity)."""
+    if not os.environ.get("APPLICATIONINSIGHTS_CONNECTION_STRING"):
+        return
+    try:
+        from azure.identity import DefaultAzureCredential
+        from azure.monitor.opentelemetry import configure_azure_monitor
+
+        configure_azure_monitor(credential=DefaultAzureCredential())
+    except Exception as exc:  # noqa: BLE001 - telemetry must never stop the app
+        log.warning("Azure Monitor not configured: %s", exc)
+
+
+def _register_agents() -> None:
+    try:
+        agents = MODEL.register_agents(AGENT_INSTRUCTIONS)
+        if agents:
+            log.info("Foundry agents ready: %s", ", ".join(agents.values()))
+    except Exception as exc:  # noqa: BLE001
+        log.warning("Foundry agent registration skipped: %s", exc)
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    _configure_telemetry()
+    if MODEL is not None:
+        threading.Thread(target=_register_agents, daemon=True).start()
+    yield
+
+
+app = FastAPI(title="MatchSense", description="Explainable, personalised match intelligence", lifespan=lifespan)
+
+
+def crew_for(match_id: str, match: StoredMatch) -> NarrationCrew:
+    """One crew per match: every viewer shares its analysis cache and rate limit."""
+    if match_id not in CREWS:
+        CREWS[match_id] = NarrationCrew(MatchContext(match.metadata), model=MODEL, blackboard=Blackboard(),
+                                        calls_per_minute=int(os.environ.get("NARRATION_CALLS_PER_MINUTE", "40")))
+    return CREWS[match_id]
 
 
 @lru_cache(maxsize=8)
@@ -53,6 +101,18 @@ def list_matches() -> list[dict]:
     return out
 
 
+@app.get("/api/narration")
+def narration_status() -> dict:
+    """Which narration backend is live, and what it has cost so far."""
+    if MODEL is None:
+        return {"backend": "local", "detail": "deterministic explanations and templates; set FOUNDRY_* to use Foundry"}
+    usage = MODEL.usage
+    return {"backend": "foundry", "model": MODEL.settings.model, "agents": sorted(MODEL._agents.values()),
+            "calls": usage.calls, "failures": usage.failures, "input_tokens": usage.input_tokens,
+            "output_tokens": usage.output_tokens, "by_role": usage.by_role,
+            "avg_latency_ms": round(usage.latency_ms / usage.calls, 1) if usage.calls else None}
+
+
 @app.get("/api/schema/cues")
 def cue_schema() -> dict:
     return {"fps": FPS, "fields": CUE_SCHEMA, "modes": list(MODES)}
@@ -69,7 +129,7 @@ async def stream(ws: WebSocket, match_id: str, mode: str = "casual", team: str =
         await ws.send_text(dumps({"k": "error", "message": str(getattr(exc, "detail", exc))}))
         await ws.close()
         return
-    session = LiveSession(match, profile, audio=bool(audio), speed=speed)
+    session = LiveSession(match, profile, audio=bool(audio), speed=speed, crew=crew_for(match_id, match))
     start_frame = _minute_to_frame(match, start)
 
     async def send(message: dict) -> None:
@@ -86,6 +146,7 @@ async def stream(ws: WebSocket, match_id: str, mode: str = "casual", team: str =
         pass
     finally:
         receiver.cancel()
+        session.close()
 
 
 def _minute_to_frame(match: StoredMatch, minute: float) -> int:

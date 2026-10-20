@@ -7,3 +7,5 @@ data/matches/latest/
 .claude/
 .env
 *.log
+build/
+dist/

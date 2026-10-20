@@ -40,7 +40,8 @@ export class Overlays {
       el.className = `lt kind-${c.kind}`;
       el.innerHTML = `<div class="bar" style="background:linear-gradient(${p} 0 55%, ${s} 55%)"></div>
         <div class="content"><div class="title">${esc(c.title)}</div><div class="body">${esc(c.body)}</div>
-        <div class="meta">${esc(c.clock)} · evidence: ${c.evidence.length} event${c.evidence.length === 1 ? "" : "s"}</div></div>`;
+        <div class="why"${c.why ? "" : " hidden"}><b>Why it matters</b> <span>${esc(c.why || "")}</span></div>
+        <div class="meta">${esc(c.clock)} · evidence: ${c.evidence.length} event${c.evidence.length === 1 ? "" : "s"}<span class="src"></span></div></div>`;
       this.lt.appendChild(el);
       this.cues.set(c.id, { cue: c, el, shown: performance.now() / 1000 });
     } else {
@@ -54,6 +55,20 @@ export class Overlays {
       this.tagsEl.appendChild(el);
       this.cues.set(c.id, { cue: c, el, shown: performance.now() / 1000 });
     }
+  }
+
+  // Better text from the narration crew arrives a moment after the cue; swap it in if it is still showing.
+  updateCue(id, text) {
+    const entry = this.cues.get(id);
+    if (!entry || entry.cue.layer !== "lower_third") return;
+    const el = entry.el;
+    el.querySelector(".title").textContent = text.title;
+    el.querySelector(".body").textContent = text.body;
+    if (text.why) {
+      el.querySelector(".why").hidden = false;
+      el.querySelector(".why span").textContent = text.why;
+    }
+    el.querySelector(".src").textContent = " · written by Foundry";
   }
 
   remove(id) {
@@ -228,11 +243,37 @@ export class Panel {
     ].join("");
   }
 
-  add(clock, title, body, cls = "") {
+  add(clock, title, body, cls = "", id = null, why = null) {
     const li = document.createElement("li");
     li.className = cls;
-    li.innerHTML = `<div class="h"><span class="c">${esc(clock)}</span><span class="t">${esc(title)}</span></div>${body ? `<div class="b">${esc(body)}</div>` : ""}`;
+    if (id) li.dataset.id = id;
+    li.innerHTML = `<div class="h"><span class="c">${esc(clock)}</span><span class="t">${esc(title)}</span></div>`
+      + (body ? `<div class="b">${esc(body)}</div>` : "")
+      + (why ? `<div class="w">${esc(why)}</div>` : "");
     this.feed.prepend(li);
     while (this.feed.children.length > 120) this.feed.lastChild.remove();
+  }
+
+  update(id, text) {
+    const li = this.feed.querySelector(`li[data-id="${id}"]`);
+    if (!li) return;
+    li.querySelector(".t").textContent = text.title;
+    const b = li.querySelector(".b");
+    if (b) b.textContent = text.body;
+    if (text.why) {
+      let w = li.querySelector(".w");
+      if (!w) { w = document.createElement("div"); w.className = "w"; li.appendChild(w); }
+      w.textContent = text.why;
+    }
+    li.classList.add("ai");
+  }
+
+  recap(r) {
+    const card = document.querySelector("#card-recap");
+    card.hidden = false;
+    card.querySelector("h2").textContent = r.period === 1 ? "Half-time recap" : "Full-time recap";
+    card.querySelector(".headline").textContent = r.headline;
+    card.querySelector(".recap").textContent = r.recap;
+    card.querySelector(".src").textContent = r.source === "foundry" ? "Written by the recap agent on Microsoft Foundry" : "Automatic recap";
   }
 }

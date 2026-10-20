@@ -27,8 +27,12 @@
       <select id="lang-select" aria-label="Commentary language">
         <option value="en" selected>English</option>
         <option value="es" disabled>Español · with Azure</option>
+        <option value="fr" disabled>Français · with Azure</option>
+        <option value="pt" disabled>Português · with Azure</option>
         <option value="ar" disabled>العربية · with Azure</option>
         <option value="hi" disabled>हिन्दी · with Azure</option>
+        <option value="ja" disabled>日本語 · with Azure</option>
+        <option value="sw" disabled>Kiswahili · with Azure</option>
       </select>
     </div>
   </header>
@@ -80,6 +84,12 @@
     </section>
 
     <aside class="panel" id="panel">
+      <section class="card recap-card" id="card-recap" hidden>
+        <h2>Recap</h2>
+        <div class="headline"></div>
+        <p class="recap"></p>
+        <div class="src"></div>
+      </section>
       <section class="card" id="card-focus" hidden>
         <div class="focus-head" id="focus-head"></div>
         <div class="focus-grid" id="focus-grid"></div>
