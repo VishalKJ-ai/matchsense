@@ -31,7 +31,6 @@ var modelDeploymentName = modelName
 var acrPullRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')
 var azureAiUserRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '53ca6127-db72-4b80-b1b0-d745d6d5456d')
 var metricsPublisherRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '3913510d-42f4-4e42-8a64-420c390055eb')
-var acrPushRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8311e382-0749-4cb8-b61a-304f252e45ec')
 var containerAppsContributorRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '358470bc-b998-42bd-ab17-a7e34c199c0f')
 var readerRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'acdd72a7-3385-48ef-bd42-f606fba81ae7')
 var deployFromGitHub = !empty(githubRepository)
@@ -70,7 +69,9 @@ resource appIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-3
 }
 
 // Continuous deployment without secrets: GitHub Actions on the main branch exchanges its OIDC
-// token for this identity, which may push images and update the web app, and nothing else.
+// token for this identity, which may update the web app (to the image CI publishes on GitHub
+// Container Registry) and nothing else. githubRepository must match the subject GitHub presents,
+// which can carry immutable IDs: owner@ownerId/repo@repoId.
 resource deployIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = if (deployFromGitHub) {
   name: '${abbrs.identity}deploy-${resourceToken}'
   location: location
@@ -117,16 +118,6 @@ resource acrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   properties: {
     roleDefinitionId: acrPullRoleId
     principalId: appIdentity.properties.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-resource deployAcrPush 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (deployFromGitHub) {
-  name: guid(registry.id, '${abbrs.identity}deploy-${resourceToken}', acrPushRoleId)
-  scope: registry
-  properties: {
-    roleDefinitionId: acrPushRoleId
-    principalId: deployIdentity!.properties.principalId
     principalType: 'ServicePrincipal'
   }
 }

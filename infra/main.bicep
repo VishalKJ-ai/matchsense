@@ -26,7 +26,7 @@ param modelCapacity int = 50
 @description('Register each crew role as a versioned Foundry prompt agent (preview). Direct calls are used otherwise.')
 param useFoundryAgents bool = true
 
-@description('GitHub repository (owner/name) whose main branch may deploy through OIDC. Leave empty to skip.')
+@description('GitHub repository whose main branch may deploy through OIDC, as in its OIDC subject: owner/name, or owner@ownerId/name@repoId when GitHub uses immutable IDs. Leave empty to skip.')
 param githubRepository string = ''
 
 @description('Whether the web app already exists (set by azd), so provisioning keeps its current image.')

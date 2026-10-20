@@ -198,9 +198,9 @@ CLI). `azd provision` creates one resource group containing:
 | Resource | Purpose |
 | --- | --- |
 | Azure Container Apps | the web service and websocket stream; one warm replica, scales to 3. The template also fits [express](https://learn.microsoft.com/azure/container-apps/express-overview) environments |
-| Azure Container Registry | the image |
+| Azure Container Registry | the image when deploying with `azd deploy` (CI publishes to GitHub Container Registry instead) |
 | Microsoft Foundry account, project and model deployment | the narration crew (`gpt-5-mini` by default) |
-| User-assigned managed identities | keyless access. App: AcrPull, Azure AI User, Monitoring Metrics Publisher. Deploy (optional): GitHub OIDC trust for `main`, AcrPush, Container Apps Contributor on the app, Reader |
+| User-assigned managed identities | keyless access. App: AcrPull, Azure AI User, Monitoring Metrics Publisher. Deploy (optional): GitHub OIDC trust for `main`, Container Apps Contributor on the app, Reader |
 | Log Analytics and Application Insights | metrics, logs and traces through OpenTelemetry |
 | Budget (optional) | email alerts at 50%, 80% and 100% of a monthly amount |
 
@@ -243,8 +243,12 @@ azd env set BUDGET_CONTACT_EMAIL you@example.com
 ```
 
 ```bash
-azd env set GITHUB_REPOSITORY your-name/matchsense
+azd env set GITHUB_REPOSITORY "$(gh api repos/your-name/matchsense --jq '"\(.owner.login)@\(.owner.id)/\(.name)@\(.id)"')"
 ```
+
+   The value must match the subject in GitHub's OIDC token, which now carries
+   immutable IDs (`owner@ownerId/repo@repoId`). Older setups use plain
+   `owner/repo`; the deploy job's login error shows the subject GitHub sent.
 
 4. Provision, then deploy the image:
 
@@ -258,14 +262,23 @@ azd deploy
 
 `azd deploy` builds the image in Azure Container Registry. Some subscriptions,
 including Azure for Students, do not allow those ACR Tasks builds
-(`TasksOperationsNotAllowed`). Use continuous deployment instead: copy the
-`AZURE_DEPLOY_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`,
-`AZURE_RESOURCE_GROUP`, `AZURE_CONTAINER_REGISTRY_NAME` and
-`AZURE_CONTAINER_APP_NAME` values from `azd env get-values` into the GitHub
-repository's Actions variables (the first as `AZURE_CLIENT_ID`). None of them
-is a secret. Every push to `main` then builds the image on GitHub, pushes it
-with the deploy identity's OIDC token, rolls the app forward and checks
-`/api/health`. Later `azd provision` runs keep the deployed image.
+(`TasksOperationsNotAllowed`), and Container Apps express environments could
+not pull from ACR with a managed identity. Use continuous deployment instead:
+copy the `AZURE_DEPLOY_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`,
+`AZURE_RESOURCE_GROUP` and `AZURE_CONTAINER_APP_NAME` values from
+`azd env get-values` into the GitHub repository's Actions variables (the first
+as `AZURE_CLIENT_ID`). None of them is a secret. Every push to `main` then
+builds the image, publishes it to GitHub Container Registry with the
+workflow's own token, rolls the app forward with the deploy identity's OIDC
+token, and checks `/api/health`. Make the package public once after the first
+run (the job links to its settings); Azure pulls it anonymously, and anyone can
+run it locally:
+
+```bash
+docker run -p 8000:8000 ghcr.io/vishalkj-ai/matchsense
+```
+
+Later `azd provision` runs keep the deployed image.
 
 Student subscriptions also limit regions (an "Allowed resource deployment
 regions" policy) and model quota (gpt-5-mini, gpt-4.1-mini and o4-mini had

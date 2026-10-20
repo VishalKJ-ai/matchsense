@@ -42,35 +42,51 @@ jobs:
           az bicep install
           az bicep build --file infra/main.bicep --stdout > /dev/null
 
-  # Continuous deployment to Azure Container Apps for every push to main, without secrets: GitHub's
-  # OIDC token is exchanged for the deploy identity in infra/resources.bicep, which may push to the
-  # registry and update the web app only. Skipped until the repository variables are set, so forks
-  # and pull requests never deploy. The image is built here because some subscriptions (Azure for
-  # Students among them) do not allow ACR Tasks, which `azd deploy` uses for remote builds.
+  # Continuous deployment to Azure Container Apps for every push to main, without stored secrets.
+  # The image goes to GitHub Container Registry with the workflow's own token, as a public image
+  # that anyone can `docker run`. Then GitHub's OIDC token is exchanged for the deploy identity in
+  # infra/resources.bicep, which may update the web app and nothing else. Skipped until the
+  # repository variables are set, so forks and pull requests never deploy.
+  #
+  # Why not Azure Container Registry: some subscriptions (Azure for Students among them) allow no
+  # ACR Tasks builds, which `azd deploy` uses, and Container Apps express environments could not
+  # pull from ACR with a managed identity. A public image needs no registry credentials at all.
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.AZURE_CLIENT_ID != ''
     needs: [test, container, infra]
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      packages: write
       id-token: write
     concurrency:
       group: deploy
       cancel-in-progress: false
-    env:
-      IMAGE: ${{ vars.AZURE_CONTAINER_REGISTRY_NAME }}.azurecr.io/matchsense/web:${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
+      - name: Build and push image
+        run: |
+          repo="${GITHUB_REPOSITORY,,}"
+          echo "IMAGE=ghcr.io/$repo:$GITHUB_SHA" >> "$GITHUB_ENV"
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker build --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+            -t "ghcr.io/$repo:$GITHUB_SHA" -t "ghcr.io/$repo:latest" .
+          docker push --all-tags "ghcr.io/$repo"
+      - name: Check the image is public
+        run: |
+          repo="${GITHUB_REPOSITORY,,}"
+          token=$(curl -fsS "https://ghcr.io/token?scope=repository:$repo:pull" | jq -r '.token // empty' || true)
+          if [ -z "$token" ] || ! curl -fsSI -o /dev/null -H "Authorization: Bearer $token" \
+              -H "Accept: application/vnd.oci.image.index.v1+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json" \
+              "https://ghcr.io/v2/$repo/manifests/$GITHUB_SHA"; then
+            echo "::error::Azure pulls the image anonymously, but the package is private. Make it public once (Package settings > Danger zone > Change visibility): $GITHUB_SERVER_URL/users/$GITHUB_REPOSITORY_OWNER/packages/container/${GITHUB_REPOSITORY#*/}/settings, then re-run this job."
+            exit 1
+          fi
       - uses: azure/login@v2
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-      - name: Build and push image
-        run: |
-          az acr login --name "${{ vars.AZURE_CONTAINER_REGISTRY_NAME }}"
-          docker build -t "$IMAGE" .
-          docker push "$IMAGE"
       - name: Deploy
         run: |
           az containerapp update --name "${{ vars.AZURE_CONTAINER_APP_NAME }}" \
