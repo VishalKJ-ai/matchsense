@@ -10,7 +10,8 @@ LANGUAGES = {
 }
 
 STYLES = {
-    "casual": "a casual fan: plain words, no jargon, turn probabilities into everyday odds such as 'about 1 in 3'",
+    "casual": "a casual fan: plain words, no jargon. Turn probabilities (values between 0 and 1, such as xG) into "
+              "everyday odds such as 'about 1 in 3'; never turn rates, counts or percentages into odds",
     "analyst": "a data-hungry analyst: precise metrics and their names (xG, PPDA, line height), compact",
 }
 
