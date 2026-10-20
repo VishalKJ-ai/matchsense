@@ -17,7 +17,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 
-from ..agents import AGENT_INSTRUCTIONS, Blackboard, NarrationCrew, model_from_env
+from ..agents import AGENT_ROLES, Blackboard, NarrationCrew, model_from_env
 from ..analytics.context import MatchContext
 from ..render.producer import CUE_SCHEMA
 from ..render.profiles import MODES, Profile
@@ -47,7 +47,7 @@ def _configure_telemetry() -> None:
 
 def _register_agents() -> None:
     try:
-        agents = MODEL.register_agents(AGENT_INSTRUCTIONS)
+        agents = MODEL.register_agents(AGENT_ROLES)
         if agents:
             log.info("Foundry agents ready: %s", ", ".join(agents.values()))
     except Exception as exc:  # noqa: BLE001

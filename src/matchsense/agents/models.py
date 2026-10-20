@@ -48,7 +48,9 @@ class FoundrySettings:
     model: str
     use_agents: bool = False
     timeout_s: float = 8.0
-    reasoning_effort: str | None = "low"
+    # Reasoning tokens count against max_output_tokens: at "low", gpt-5-mini often spent the whole
+    # budget thinking and returned no JSON. "minimal" answered every call in about 2 s.
+    reasoning_effort: str | None = "minimal"
     max_output_tokens: int = 600
 
     @classmethod
@@ -57,7 +59,7 @@ class FoundrySettings:
         model = os.environ.get("FOUNDRY_MODEL_DEPLOYMENT", "").strip()
         if not endpoint or not model:
             return None
-        effort = os.environ.get("FOUNDRY_REASONING_EFFORT", "low").strip() or None
+        effort = os.environ.get("FOUNDRY_REASONING_EFFORT", "minimal").strip() or None
         return cls(
             project_endpoint=endpoint,
             model=model,
@@ -98,19 +100,31 @@ class FoundryModel:
                 timeout=self.settings.timeout_s, max_retries=1)
         return self._client
 
-    def register_agents(self, roles: dict[str, str]) -> dict[str, str]:
-        """Create or update a versioned Foundry prompt agent for each role. Returns role -> agent name."""
+    def register_agents(self, roles: dict[str, tuple[str, dict]]) -> dict[str, str]:
+        """Create or update a versioned Foundry prompt agent for each role (role -> (instructions, schema)).
+
+        The agent owns its output schema and reasoning effort: requests that reference an agent
+        may not override them. Returns role -> agent name.
+        """
         if not self.settings.use_agents:
             return {}
         self._connect()
-        from azure.ai.projects.models import PromptAgentDefinition
+        from azure.ai.projects.models import (PromptAgentDefinition, PromptAgentDefinitionTextOptions, Reasoning,
+                                              TextResponseFormatJsonSchema)
 
-        for role, instructions in roles.items():
+        effort = self.settings.reasoning_effort
+        for role, (instructions, schema) in roles.items():
             name = f"matchsense-{role}"
             try:
                 self._project.agents.create_version(
                     agent_name=name,
-                    definition=PromptAgentDefinition(model=self.settings.model, instructions=instructions),
+                    definition=PromptAgentDefinition(
+                        model=self.settings.model,
+                        instructions=instructions,
+                        text=PromptAgentDefinitionTextOptions(
+                            format=TextResponseFormatJsonSchema(name=role, schema=schema, strict=True)),
+                        reasoning=Reasoning(effort=effort) if effort else None,
+                    ),
                     description=f"MatchSense {role}: part of the live narration crew",
                     metadata={"app": "matchsense", "role": role},
                 )
@@ -123,17 +137,17 @@ class FoundryModel:
         client = self._connect()
         kwargs: dict[str, Any] = {
             "input": [{"role": "user", "content": json.dumps(payload, ensure_ascii=False)}],
-            "text": {"format": {"type": "json_schema", "name": role, "schema": schema, "strict": True}},
             "max_output_tokens": self.settings.max_output_tokens,
             "store": False,
         }
         agent = self._agents.get(role)
-        if agent:
-            kwargs["extra_body"] = {"agent": {"name": agent, "type": "agent_reference"}}
+        if agent:  # the agent definition supplies model, instructions, schema and reasoning
+            kwargs["extra_body"] = {"agent_reference": {"name": agent, "type": "agent_reference"}}
         else:
-            kwargs.update(model=self.settings.model, instructions=instructions)
-        if self.settings.reasoning_effort:
-            kwargs["reasoning"] = {"effort": self.settings.reasoning_effort}
+            kwargs.update(model=self.settings.model, instructions=instructions,
+                          text={"format": {"type": "json_schema", "name": role, "schema": schema, "strict": True}})
+            if self.settings.reasoning_effort:
+                kwargs["reasoning"] = {"effort": self.settings.reasoning_effort}
         start = time.perf_counter()
         span = tracer.start_as_current_span(f"chat {role}") if tracer else None
         try:

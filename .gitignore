@@ -6,6 +6,7 @@ data/matches/latest/
 .DS_Store
 .claude/
 .env
+.azure/
 *.log
 build/
 dist/

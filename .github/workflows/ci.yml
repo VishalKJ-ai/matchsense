@@ -41,3 +41,49 @@ jobs:
         run: |
           az bicep install
           az bicep build --file infra/main.bicep --stdout > /dev/null
+
+  # Continuous deployment to Azure Container Apps for every push to main, without secrets: GitHub's
+  # OIDC token is exchanged for the deploy identity in infra/resources.bicep, which may push to the
+  # registry and update the web app only. Skipped until the repository variables are set, so forks
+  # and pull requests never deploy. The image is built here because some subscriptions (Azure for
+  # Students among them) do not allow ACR Tasks, which `azd deploy` uses for remote builds.
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.AZURE_CLIENT_ID != ''
+    needs: [test, container, infra]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: deploy
+      cancel-in-progress: false
+    env:
+      IMAGE: ${{ vars.AZURE_CONTAINER_REGISTRY_NAME }}.azurecr.io/matchsense/web:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Build and push image
+        run: |
+          az acr login --name "${{ vars.AZURE_CONTAINER_REGISTRY_NAME }}"
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+      - name: Deploy
+        run: |
+          az containerapp update --name "${{ vars.AZURE_CONTAINER_APP_NAME }}" \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --image "$IMAGE" \
+            --query properties.latestRevisionName -o tsv
+      - name: Smoke test
+        run: |
+          fqdn=$(az containerapp show --name "${{ vars.AZURE_CONTAINER_APP_NAME }}" \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --query properties.configuration.ingress.fqdn -o tsv)
+          for i in $(seq 1 36); do
+            if curl -fsS "https://$fqdn/api/health" | grep -q '"ok"'; then
+              curl -fsS "https://$fqdn/api/narration"; echo; echo "Live at https://$fqdn"; exit 0
+            fi
+            sleep 5
+          done
+          echo "health check failed" >&2; exit 1

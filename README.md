@@ -11,7 +11,7 @@ matches are fictional.
 | --- | --- | --- |
 | Data | Tracking-grade match simulator (this repo, `matchsense.sim`) | done |
 | Interpret | Live stats engine: pass difficulty, speeds, pressing, momentum, control vs chaos, key moments (`matchsense.analytics`) | done |
-| Explain | Narration crew on Microsoft Foundry: tactician, narrator, fact-checker, recapper, with a local fallback (`matchsense.agents`) | built; live Foundry run pending |
+| Explain | Narration crew on Microsoft Foundry: tactician, narrator, fact-checker, recapper, with a local fallback (`matchsense.agents`) | done; live on Foundry (gpt-5-mini prompt agents) |
 | Render | Timed, machine-readable overlay cues, a producer that schedules them, and a live 2D broadcast view (`matchsense.render`, `matchsense.web`) | done |
 | Personalise | Casual, analyst, player-focus, club and audio-description modes; languages follow with the agents | done (English) |
 
@@ -177,70 +177,109 @@ on screen.
 
 Models are called through the Foundry project's Responses API with strict JSON
 schemas, `store=False`, and Microsoft Entra ID sign-in (managed identity in
-Azure, `az login` locally): no keys anywhere. With `FOUNDRY_USE_AGENTS=1`,
-each role is registered as a versioned Foundry prompt agent
-(`matchsense-tactician`, `-narrator`, `-recapper`) and called by reference.
+Azure, `az login` locally): no keys anywhere. With `FOUNDRY_USE_AGENTS=1`
+(the default on Azure), each role is registered as a versioned Foundry prompt
+agent (`matchsense-tactician`, `-narrator`, `-recapper`) that owns its
+instructions, output schema and reasoning effort, and is called by reference.
 Traces go to Application Insights. `/api/narration` reports the backend,
 calls, failures and tokens.
+
+On gpt-5-mini with minimal reasoning, a live run over the comeback match's
+goal, tactical shift and big chance, for casual, analyst and Spanish viewers,
+plus the full-time recap, made 13 calls: every one returned schema-valid text
+that passed the fact-check, in about 2 seconds each. At "low" reasoning, most
+calls spent their output budget on reasoning and fell back to templates.
 
 ## Deploy to Azure
 
 Everything is defined in `infra/` (Bicep) and `azure.yaml` (Azure Developer
-CLI). `azd up` creates one resource group containing:
+CLI). `azd provision` creates one resource group containing:
 
 | Resource | Purpose |
 | --- | --- |
-| Azure Container Apps (Consumption) | the web service and websocket stream; one warm replica, scales to 3 |
-| Azure Container Registry | the image, built in Azure (`remoteBuild`), so Docker is not needed locally |
-| Microsoft Foundry account, project and model deployment | the narration crew |
-| User-assigned managed identity | keyless access: AcrPull, Azure AI User, Monitoring Metrics Publisher |
-| Log Analytics and Application Insights | logs, metrics and traces |
+| Azure Container Apps | the web service and websocket stream; one warm replica, scales to 3. The template also fits [express](https://learn.microsoft.com/azure/container-apps/express-overview) environments |
+| Azure Container Registry | the image |
+| Microsoft Foundry account, project and model deployment | the narration crew (`gpt-5-mini` by default) |
+| User-assigned managed identities | keyless access. App: AcrPull, Azure AI User, Monitoring Metrics Publisher. Deploy (optional): GitHub OIDC trust for `main`, AcrPush, Container Apps Contributor on the app, Reader |
+| Log Analytics and Application Insights | metrics, logs and traces through OpenTelemetry |
 | Budget (optional) | email alerts at 50%, 80% and 100% of a monthly amount |
 
 1. Install the [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli)
-   and the [Azure Developer CLI](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd).
-2. Sign in and create an environment:
+   and the [Azure Developer CLI](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd),
+   then sign in once and let azd reuse it:
 
 ```bash
-azd auth login
+az login
 ```
 
 ```bash
-azd env new matchsense-dev
+azd config set auth.useAzCliAuth true
+```
+
+2. Create an environment in a region your subscription allows, where your
+   model has quota. Check both first:
+
+```bash
+az policy assignment list --query "[?displayName=='Allowed resource deployment regions'].parameters"
 ```
 
 ```bash
-azd env set AZURE_LOCATION swedencentral
+az cognitiveservices usage list --location francecentral --query "[?contains(name.value,'gpt-5-mini')]" -o table
 ```
 
-3. Optionally set a budget alert, and pick a different model if `gpt-6-astra`
-   is not available in your region:
+```bash
+azd env new matchsense --location francecentral
+```
+
+3. Optionally pick another model, set a budget alert, and let a GitHub
+   repository deploy from its `main` branch:
+
+```bash
+azd env set FOUNDRY_MODEL_NAME gpt-4.1-mini
+```
 
 ```bash
 azd env set BUDGET_CONTACT_EMAIL you@example.com
 ```
 
 ```bash
-az cognitiveservices model list --location swedencentral --query "[?kind=='AIServices'].model.{name:name,version:version}" -o table
+azd env set GITHUB_REPOSITORY your-name/matchsense
+```
+
+4. Provision, then deploy the image:
+
+```bash
+azd provision
 ```
 
 ```bash
-azd env set FOUNDRY_MODEL_NAME gpt-6-astra
+azd deploy
 ```
 
-4. Provision and deploy, then open the `WEB_URL` it prints:
+`azd deploy` builds the image in Azure Container Registry. Some subscriptions,
+including Azure for Students, do not allow those ACR Tasks builds
+(`TasksOperationsNotAllowed`). Use continuous deployment instead: copy the
+`AZURE_DEPLOY_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`,
+`AZURE_RESOURCE_GROUP`, `AZURE_CONTAINER_REGISTRY_NAME` and
+`AZURE_CONTAINER_APP_NAME` values from `azd env get-values` into the GitHub
+repository's Actions variables (the first as `AZURE_CLIENT_ID`). None of them
+is a secret. Every push to `main` then builds the image on GitHub, pushes it
+with the deploy identity's OIDC token, rolls the app forward and checks
+`/api/health`. Later `azd provision` runs keep the deployed image.
 
-```bash
-azd up
-```
+Student subscriptions also limit regions (an "Allowed resource deployment
+regions" policy) and model quota (gpt-5-mini, gpt-4.1-mini and o4-mini had
+quota on ours; the gpt-6 family had none). New Container Apps environments may
+be created as express, which is why the environment sets no workload profiles or
+log destination.
 
-To use Foundry from your laptop, run `az login`, copy
-`FOUNDRY_PROJECT_ENDPOINT` and `FOUNDRY_MODEL_DEPLOYMENT` from
-`azd env get-values` into your shell (see `.env.example`), and start
-`matchsense-web`. Tear everything down with `azd down --purge`.
+To use Foundry from your laptop, copy `FOUNDRY_PROJECT_ENDPOINT` and
+`FOUNDRY_MODEL_DEPLOYMENT` from `azd env get-values` into your shell (see
+`.env.example`) and start `matchsense-web`; `az login` is the only credential.
+Tear everything down with `azd down --purge`.
 
 CI (`.github/workflows/ci.yml`) runs the tests, builds and smoke-tests the
-container, and compiles the Bicep on every push.
+container, compiles the Bicep on every push, and deploys from `main`.
 
 ## Quick start
 

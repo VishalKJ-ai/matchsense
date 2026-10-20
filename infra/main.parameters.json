@@ -5,8 +5,10 @@
     "environmentName": { "value": "${AZURE_ENV_NAME}" },
     "location": { "value": "${AZURE_LOCATION}" },
     "principalId": { "value": "${AZURE_PRINCIPAL_ID}" },
-    "modelName": { "value": "${FOUNDRY_MODEL_NAME=gpt-6-astra}" },
-    "modelVersion": { "value": "${FOUNDRY_MODEL_VERSION=2026-09-03}" },
+    "modelName": { "value": "${FOUNDRY_MODEL_NAME=gpt-5-mini}" },
+    "modelVersion": { "value": "${FOUNDRY_MODEL_VERSION=2025-08-07}" },
+    "githubRepository": { "value": "${GITHUB_REPOSITORY=}" },
+    "webExists": { "value": "${SERVICE_WEB_RESOURCE_EXISTS=false}" },
     "budgetContactEmail": { "value": "${BUDGET_CONTACT_EMAIL=}" }
   }
 }

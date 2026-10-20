@@ -31,10 +31,21 @@ from . import local
 from .factcheck import check_text
 from .models import ChatModel, ModelError
 from .prompts import (CAPTION_LIMITS, CAPTION_SCHEMA, LANGUAGES, NARRATOR, RECAP_LIMITS, RECAP_SCHEMA,
-                      RECAPPER, REPAIR, STYLES, TACTICIAN, WHY_SCHEMA)
+                      RECAPPER, REPAIR, ROLES, STYLES, TACTICIAN, WHY_SCHEMA)
 
 EXPLAIN_KINDS = {"goal", "tactical_shift", "big_chance", "save", "momentum_swing", "chaos_spell", "control_spell", "card"}
 RECAP_KINDS = {"goal", "tactical_shift", "big_chance", "save", "card", "momentum_swing", "substitution"}
+
+
+def _momentum_word(strength: int) -> str:
+    """The 0-100 momentum strength as a word."""
+    if strength < 20:
+        return "level"
+    if strength < 45:
+        return "slight"
+    if strength < 70:
+        return "clear"
+    return "strong"
 
 
 @dataclass
@@ -126,8 +137,9 @@ class NarrationCrew:
             "context": {
                 "score_line": f"{c.team_name(c.home)} {score.get(c.home, 0)}-{score.get(c.away, 0)} {c.team_name(c.away)}",
                 "possession_last_10": {c.team_name(t): v["possession"] for t, v in recent.items()},
-                "momentum_towards": c.team_name(c.home if momentum >= 0 else c.away),
-                "momentum_strength": abs(momentum),
+                # In words: as a 0-100 number, models read it as a probability ("7 in 10").
+                "momentum": f"{_momentum_word(abs(momentum))}, towards "
+                            f"{c.team_name(c.home if momentum >= 0 else c.away)}",
             },
         }
         if profile is not None:
@@ -250,4 +262,4 @@ class NarrationCrew:
         return {"headline": out["headline"], "recap": out["recap"], "source": "foundry"}
 
 
-AGENT_INSTRUCTIONS = {"tactician": TACTICIAN, "narrator": NARRATOR, "recapper": RECAPPER}
+AGENT_ROLES = ROLES  # role -> (instructions, output schema), registered as Foundry prompt agents

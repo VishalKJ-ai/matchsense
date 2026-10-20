@@ -17,7 +17,7 @@ from matchsense.render.templates import Templates
 from matchsense.sim.io import StoredMatch
 from matchsense.web.session import LiveSession
 
-SETTINGS = FoundrySettings("https://aif-x.services.ai.azure.com/api/projects/proj-matchsense", "gpt-6-astra")
+SETTINGS = FoundrySettings("https://aif-x.services.ai.azure.com/api/projects/proj-matchsense", "gpt-5-mini")
 
 
 class FakeResponses:
@@ -29,7 +29,10 @@ class FakeResponses:
 
     def create(self, **kwargs):
         self.calls.append(kwargs)
-        role = kwargs["text"]["format"]["name"]
+        if "text" in kwargs:
+            role = kwargs["text"]["format"]["name"]
+        else:  # an agent reference: the agent definition holds the schema
+            role = kwargs["extra_body"]["agent_reference"]["name"].removeprefix("matchsense-")
         queue = self.script.get(role) or [{"why": "x", "angle": "context"}]
         out = queue.pop(0) if len(queue) > 1 else queue[0]
         if isinstance(out, Exception):
@@ -110,16 +113,18 @@ def test_foundry_request_shape_and_agent_fallback(analysed, goal):
     model, responses = fake_model({"narrator": [{"title": "T", "body": "B"}]})
     model.complete("narrator", "instructions", {"a": 1}, {"type": "object"})
     call = responses.calls[-1]
-    assert call["model"] == "gpt-6-astra" and call["instructions"] == "instructions"
-    assert call["store"] is False
+    assert call["model"] == "gpt-5-mini" and call["instructions"] == "instructions"
+    assert call["store"] is False and call["reasoning"] == {"effort": "minimal"}
     assert call["text"]["format"] == {"type": "json_schema", "name": "narrator", "schema": {"type": "object"}, "strict": True}
 
     model._agents["narrator"] = "matchsense-narrator"
     responses.script["narrator"] = [RuntimeError("agent endpoint unavailable"), {"title": "T", "body": "B"}]
     assert model.complete("narrator", "instructions", {"a": 1}, {"type": "object"}) == {"title": "T", "body": "B"}
     agent_call, direct_call = responses.calls[-2], responses.calls[-1]
-    assert agent_call["extra_body"] == {"agent": {"name": "matchsense-narrator", "type": "agent_reference"}}
-    assert "model" not in agent_call and direct_call["model"] == "gpt-6-astra"
+    assert agent_call["extra_body"] == {"agent_reference": {"name": "matchsense-narrator", "type": "agent_reference"}}
+    # Foundry rejects model, schema or reasoning overrides on an agent call; the agent definition holds them.
+    assert not {"model", "instructions", "text", "reasoning"} & agent_call.keys()
+    assert direct_call["model"] == "gpt-5-mini" and "text" in direct_call
 
 
 def test_settings_come_from_the_environment(monkeypatch):
