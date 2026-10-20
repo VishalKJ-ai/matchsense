@@ -73,7 +73,7 @@ function handle(m) {
       if (S.cur) momentum.push(timelinePct(S.cur.p, S.cur.t), m.momentum);
       return carrier(m.carrier);
     case "cue": overlays.cue(m); return feedCue(m);
-    case "cue_text": overlays.updateCue(m.id, m); return panel.update(m.id, m);
+    case "cue_text": overlays.updateCue(m.id, m); return panel.updateItem(m.id, m);
     case "recap": return panel.recap(m);
     case "cue_end": return overlays.remove(m.id);
     case "ev": return onEvent(m);

@@ -254,7 +254,7 @@ export class Panel {
     while (this.feed.children.length > 120) this.feed.lastChild.remove();
   }
 
-  update(id, text) {
+  updateItem(id, text) {
     const li = this.feed.querySelector(`li[data-id="${id}"]`);
     if (!li) return;
     li.querySelector(".t").textContent = text.title;
