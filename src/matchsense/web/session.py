@@ -36,6 +36,7 @@ from ..render.profiles import Profile
 from ..sim.io import StoredMatch
 
 FPS = 10
+END_WAIT_S = 15.0  # how long full time waits for the crew's last captions and recap
 TICKER = {"goal", "shot", "card", "substitution", "period_start", "period_end", "added_time", "offside"}
 
 
@@ -297,6 +298,8 @@ class LiveSession:
             if self._jobs:
                 self._start_jobs(send)
         await send(self.state_message())
+        if self._tasks:  # the full-time recap and last captions are still being written; the socket closes on "end"
+            await asyncio.wait(list(self._tasks), timeout=END_WAIT_S)
         await send({"k": "end"})
 
     def control(self, msg: dict) -> None:

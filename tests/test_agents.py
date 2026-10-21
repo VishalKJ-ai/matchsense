@@ -153,13 +153,12 @@ def test_live_session_streams_crew_text(match):
     async def send(m):
         sent.append(m)
 
-    async def go():
-        await session.run(send, start_frame=len(match.tracking["t"]) - 9000)
-        await asyncio.sleep(0.5)
-
-    asyncio.run(go())
+    # No sleep after run(): the websocket handler closes the session as soon as run() returns,
+    # so the full-time recap must arrive before "end".
+    asyncio.run(session.run(send, start_frame=len(match.tracking["t"]) - 9000))
     kinds = {m["k"] for m in sent}
     assert "cue" in kinds and "cue_text" in kinds
+    assert sent[-1]["k"] == "end"
     assert any(m["k"] == "recap" and m.get("source") == "foundry" for m in sent)
     lower = [m for m in sent if m["k"] == "cue" and m["layer"] == "lower_third"]
     assert lower and all("why" in m for m in lower)
