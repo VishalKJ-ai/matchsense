@@ -28,7 +28,7 @@ from dataclasses import asdict, dataclass
 
 from ..analytics.context import MatchContext
 from . import local
-from .factcheck import check_text
+from .factcheck import WORD, check_text
 from .models import ChatModel, ModelError
 from .prompts import (CAPTION_LIMITS, CAPTION_SCHEMA, LANGUAGES, NARRATOR, RECAP_LIMITS, RECAP_SCHEMA,
                       RECAPPER, REPAIR, ROLES, STYLES, TACTICIAN, WHY_SCHEMA)
@@ -46,6 +46,16 @@ def _momentum_word(strength: int) -> str:
     if strength < 70:
         return "clear"
     return "strong"
+
+
+GENERIC_CLUB_WORDS = {"fc", "afc", "athletic", "united", "city", "town", "rovers", "albion", "wanderers", "county"}
+
+
+def _name_words(ctx: MatchContext) -> set[str]:
+    """Every word of the clubs' and players' names, for the fact-checker's name check."""
+    words = {w for t in ctx.team_info.values() for k in ("name", "short_name")
+             for w in WORD.findall(t.get(k) or "") if w.lower() not in GENERIC_CLUB_WORDS}
+    return words | {w for p in ctx.players.values() for k in ("name", "short_name") for w in WORD.findall(p.get(k) or "")}
 
 
 @dataclass
@@ -100,6 +110,7 @@ class NarrationCrew:
         self.model = model
         self.board = blackboard or Blackboard()
         self.limiter = RateLimiter(calls_per_minute)
+        self.names = _name_words(ctx)
 
     @property
     def remote(self) -> bool:
@@ -189,7 +200,7 @@ class NarrationCrew:
             try:
                 out = self.model.complete("tactician", TACTICIAN, {k: v for k, v in pack.items() if k != "audience"},
                                           WHY_SCHEMA)
-                if check_text({"why": out.get("why", "")}, pack, {"why": 260}).ok:
+                if check_text({"why": out.get("why", "")}, pack, {"why": 260}, self.names).ok:
                     result = {"why": out["why"], "angle": out.get("angle"), "source": "foundry"}
             except (ModelError, Exception):  # noqa: BLE001 - any failure falls back to the local rule
                 pass
@@ -225,7 +236,8 @@ class NarrationCrew:
         try:
             out = self.model.complete("narrator", NARRATOR, payload, CAPTION_SCHEMA)
             attempts = 1
-            check = check_text({"title": out.get("title", ""), "body": out.get("body", "")}, evidence, CAPTION_LIMITS)
+            check = check_text({"title": out.get("title", ""), "body": out.get("body", "")}, evidence, CAPTION_LIMITS,
+                               self.names)
             if not check.ok and self.limiter.take():
                 repair = REPAIR.format(numbers=", ".join(check.ungrounded) or "none",
                                        problems="; ".join(check.problems))
@@ -233,7 +245,7 @@ class NarrationCrew:
                                           CAPTION_SCHEMA)
                 attempts = 2
                 check = check_text({"title": out.get("title", ""), "body": out.get("body", "")}, evidence,
-                                   CAPTION_LIMITS)
+                                   CAPTION_LIMITS, self.names)
             if not check.ok:
                 return fallback(f"fact-check failed: {', '.join(check.ungrounded + check.problems)}")
         except (ModelError, Exception) as exc:  # noqa: BLE001
@@ -270,7 +282,8 @@ class NarrationCrew:
             out = self.model.complete("recapper", RECAPPER, payload, RECAP_SCHEMA)
         except (ModelError, Exception):  # noqa: BLE001
             return fallback
-        if not check_text({"headline": out.get("headline", ""), "recap": out.get("recap", "")}, payload, RECAP_LIMITS).ok:
+        if not check_text({"headline": out.get("headline", ""), "recap": out.get("recap", "")}, payload, RECAP_LIMITS,
+                          self.names).ok:
             return fallback
         return {"headline": out["headline"], "recap": out["recap"], "source": "foundry"}
 

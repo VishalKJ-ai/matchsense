@@ -109,6 +109,20 @@ def test_analysis_is_shared_and_captions_cached(analysed, goal):
     assert roles.count("narrator") == 2  # one caption per audience
 
 
+def test_fact_check_rejects_changed_names(analysed, goal):
+    names = NarrationCrew(analysed.ctx).names
+    assert {"Westmarsh", "Ironvale", "Hartley"} <= names
+    assert not check_text({"title": "¡GOL WINMARSH!"}, {}, names=names).ok
+    assert check_text({"title": "¡GOL DE WESTMARSH!", "body": "Hartley's second, and Ironvale allow it"}, {},
+                      names=names).ok
+    # A changed name gets one repair, like an ungrounded number.
+    model, _ = fake_model({"narrator": [{"title": "¡GOL WINMARSH!", "body": "Leon Hartley."},
+                                        {"title": "¡GOL DE WESTMARSH!", "body": "Leon Hartley."}]})
+    template = Templates(analysed.ctx).render(goal, "casual")
+    n = NarrationCrew(analysed.ctx, model=model).narrate(goal, analysed.snapshot(), Profile(language="es"), template)
+    assert n.source == "foundry" and n.attempts == 2 and n.title == "¡GOL DE WESTMARSH!"
+
+
 def test_period_summary_pack_labels_half_and_match_numbers(analysed):
     full_time = next(s for s in analysed.emitted if s.kind == "period_summary" and s.facts["period"] == 2)
     facts = NarrationCrew(analysed.ctx).fact_pack(full_time, analysed.snapshot(), None)["facts"]

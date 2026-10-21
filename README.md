@@ -165,7 +165,9 @@ period end ──► Recapper ──► Fact-checker ──► recap card
   Swahili and more). It avoids repeating that audience's recent lines.
 - **Fact-checker** is deterministic. Every number in generated text must appear
   in the signal's fact pack, allowing for rounding, percentages, "1 in N" odds
-  and before-and-after changes. Failures get one repair request, then the
+  and before-and-after changes. Club and player names must be copied exactly:
+  a word that looks like a changed name ("Winmarsh" for "Westmarsh", as one
+  Spanish caption had it) fails too. Failures get one repair request, then the
   template is used.
 - **Recapper** writes the half-time and full-time stories.
 

@@ -63,11 +63,37 @@ class CheckResult:
     problems: list[str] = field(default_factory=list)
 
 
-def check_text(texts: dict[str, str], pack: dict, limits: dict[str, int] | None = None) -> CheckResult:
-    """Check generated fields against the fact pack: numbers must be grounded and lengths respected."""
+WORD = re.compile(r"[^\W\d_]+")
+
+
+def name_problems(texts: dict[str, str], names: set[str]) -> list[str]:
+    """Words that look like a club or player name but are not one ("Winmarsh" for "Westmarsh").
+
+    A capitalised word of five or more letters that is not a known name, but shares its first or
+    last five letters with a known name of six or more letters and is within three letters of its
+    length, counts as a changed name.
+    """
+    known = {n.lower() for n in names}
+    long_names = sorted((n for n in names if len(n) >= 6), key=len, reverse=True)
+    problems = []
+    for text in texts.values():
+        for word in WORD.findall(text or ""):
+            low = word.lower()
+            if len(word) < 5 or not word[0].isupper() or low in known:
+                continue
+            match = next((n for n in long_names if abs(len(n) - len(word)) <= 3
+                          and (low[:5] == n.lower()[:5] or low[-5:] == n.lower()[-5:])), None)
+            if match:
+                problems.append(f"wrote '{word}' where the name is '{match}': copy names exactly")
+    return problems
+
+
+def check_text(texts: dict[str, str], pack: dict, limits: dict[str, int] | None = None,
+               names: set[str] | None = None) -> CheckResult:
+    """Check generated fields against the fact pack: numbers grounded, names unchanged, lengths respected."""
     allowed = allowed_numbers(pack)
     ungrounded: list[str] = []
-    problems: list[str] = []
+    problems: list[str] = name_problems(texts, names) if names else []
     for name, text in texts.items():
         for m in NUMBER.finditer(text or ""):
             v = round(float(m.group().replace(",", ".")), 1)
