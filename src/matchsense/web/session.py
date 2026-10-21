@@ -37,6 +37,7 @@ from ..sim.io import StoredMatch
 
 FPS = 10
 END_WAIT_S = 15.0  # how long full time waits for the crew's last captions and recap
+CATCH_UP = asyncio.Semaphore(1)  # viewers joining mid-match catch up one at a time
 TICKER = {"goal", "shot", "card", "substitution", "period_start", "period_end", "added_time", "offside"}
 
 
@@ -265,7 +266,12 @@ class LiveSession:
     async def run(self, send, start_frame: int = 0) -> None:
         loop = asyncio.get_running_loop()
         feed = replay(self.match)
-        self.fast_forward(feed, start_frame)
+        # Catching up replays every minute before the start point: CPU-bound, so it runs in a worker
+        # thread, one at a time. On the event loop, a few viewers joining mid-match at once stalled health
+        # checks long enough for Container Apps to restart the replica; in parallel threads they slowed
+        # each other down through the GIL.
+        async with CATCH_UP:
+            await loop.run_in_executor(None, self.fast_forward, feed, start_frame)
         await send(self.init_message())
         ref_wall, ref_frame = loop.time(), start_frame
         last_sent = -10**9
