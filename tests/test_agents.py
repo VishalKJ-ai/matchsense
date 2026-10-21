@@ -109,6 +109,14 @@ def test_analysis_is_shared_and_captions_cached(analysed, goal):
     assert roles.count("narrator") == 2  # one caption per audience
 
 
+def test_period_summary_pack_labels_half_and_match_numbers(analysed):
+    full_time = next(s for s in analysed.emitted if s.kind == "period_summary" and s.facts["period"] == 2)
+    facts = NarrationCrew(analysed.ctx).fact_pack(full_time, analysed.snapshot(), None)["facts"]
+    assert facts["period"] == "second half"
+    assert {"teams_second_half_only", "teams_whole_match", "standouts_whole_match"} <= facts.keys()
+    assert "teams" not in facts and "match_teams" not in facts
+
+
 def test_foundry_request_shape_and_agent_fallback(analysed, goal):
     model, responses = fake_model({"narrator": [{"title": "T", "body": "B"}]})
     model.complete("narrator", "instructions", {"a": 1}, {"type": "object"})

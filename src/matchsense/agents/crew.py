@@ -122,6 +122,19 @@ class NarrationCrew:
             return [self._named(v) for v in value]
         return value
 
+    def _period_facts(self, facts: dict) -> dict:
+        """Label which numbers cover the half and which the whole match: unlabelled, the model
+        reported the second half's xG as the full-time totals."""
+        half = "first half" if facts.get("period") == 1 else "second half"
+        return self._named({
+            "period": half,
+            "score": facts.get("score"),
+            f"teams_{half.replace(' ', '_')}_only": facts.get("teams"),
+            "teams_whole_match": facts.get("match_teams"),
+            f"rhythm_{half.replace(' ', '_')}_only": facts.get("match"),
+            "standouts_whole_match": facts.get("standouts"),
+        })
+
     def fact_pack(self, s, snapshot: dict, profile) -> dict:
         c = self.ctx
         recent = snapshot.get("recent", {}).get("teams", {})
@@ -133,7 +146,7 @@ class NarrationCrew:
             "team": c.team_name(s.team) if s.team else None,
             "opponent": c.team_name(c.other(s.team)) if s.team else None,
             "players": [c.player_name(p, short=False) for p in s.players],
-            "facts": self._named(s.facts),
+            "facts": self._period_facts(s.facts) if s.kind == "period_summary" else self._named(s.facts),
             "context": {
                 "score_line": f"{c.team_name(c.home)} {score.get(c.home, 0)}-{score.get(c.away, 0)} {c.team_name(c.away)}",
                 "possession_last_10": {c.team_name(t): v["possession"] for t, v in recent.items()},
